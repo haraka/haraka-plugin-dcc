@@ -7,63 +7,27 @@
 
 # haraka-plugin-dcc
 
-Clone me, to create a new plugin!
+The Distributed Checksum Clearinghouses or DCC is an anti-spam content filter.
+See http://www.dcc-servers.net/dcc/ for details of how it works.
 
-# Template Instructions
+This plugin implements the protocol used by the dccifd daemon to communicate
+with DCC.
 
-These instructions will not self-destruct after use. Use and destroy.
+It requires that you install the DCC client and configure and start-up the
+dccifd daemon as per the documentation and expects the dccifd socket to be
+/var/dcc/dccifd.
 
-See also, [How to Write a Plugin](https://github.com/haraka/Haraka/wiki/Write-a-Plugin) and [Plugins.md](https://github.com/haraka/Haraka/blob/master/docs/Plugins.md) for additional plugin writing information.
+Currently it only reports results to the logs, it does not reject, greylist
+or do anything with the results of any kind.
 
-## Create a new repo for your plugin
-
-Haraka plugins are named like `haraka-plugin-something`. All the namespace after `haraka-plugin-` is yours for the taking. Please check the [Plugins]() page and a Google search to see what plugins already exist.
-
-Once you've settled on a name, create the GitHub repo. On the repo's main page, click the _Clone or download_ button and copy the URL. Then paste that URL into a local ENV variable with a command like this:
-
-```sh
-export MY_GITHUB_ORG=haraka
-export MY_PLUGIN_NAME=haraka-plugin-SOMETHING
-```
-
-Clone and rename the dcc repo:
-
-```sh
-git clone git@github.com:haraka/haraka-plugin-dcc.git
-mv haraka-plugin-dcc $MY_PLUGIN_NAME
-cd $MY_PLUGIN_NAME
-git remote rm origin
-git remote add origin "git@github.com:$MY_GITHUB_ORG/$MY_PLUGIN_NAME.git"
-```
-
-Now you'll have a local git repo to begin authoring your plugin
-
-## rename boilerplate
-
-Replaces all uses of the word `dcc` with your plugin's name.
-
-./redress.sh [something]
-
-You'll then be prompted to update package.json and then force push this repo onto the GitHub repo you've created earlier.
-
+You can report spam to DCC during reception by setting:
+`connection.transaction.notes.training_mode = 'spam'`
 
 ## Enable Travis-CI testing
 
 - [ ] visit your [Travis-CI profile page](https://travis-ci.org/profile) and enable Continuous Integration testing on the repo
 - [ ] enable Code Climate. Click the _code climate_ badge and import your repo.
 
-
-
-# Add your content here
-
-## INSTALL
-
-```sh
-cd /path/to/local/haraka
-npm install haraka-plugin-dcc
-echo "dcc" >> config/plugins
-service haraka restart
-```
 
 ### Configuration
 
@@ -90,3 +54,5 @@ $EDITOR config/dcc.ini
 [gk-url]: https://greenkeeper.io/
 [npm-img]: https://nodei.co/npm/haraka-plugin-dcc.png
 [npm-url]: https://www.npmjs.com/package/haraka-plugin-dcc
+
+
