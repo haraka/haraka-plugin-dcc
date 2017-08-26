@@ -1,116 +1,159 @@
 // dcc client
+// http://www.dcc-servers.net/dcc/dcc-tree/dccifd.html
 
-var net = require('net');
+const net = require('net');
 
-exports.hook_data_post = function (next, connection) {
-    var plugin = this;
-    var txn = connection.transaction;
+exports.register = function () {
+    this.load_dcc_ini();
+}
 
-    // Fix-up rDNS for DCC
-    var host;
-    switch (connection.remote.host) {
+exports.load_dcc_ini = function () {
+    let plugin = this;
+    plugin.cfg = plugin.config.get('dcc.ini', () => {
+        plugin.load_dcc_ini();
+    });
+
+    plugin.connCfg = { path: plugin.cfg.main.path || '/var/dcc/dccifd' };
+}
+
+exports.get_host = function (host) {
+    switch (host) {
         case 'Unknown':
         case 'NXDOMAIN':
         case 'DNSERROR':
         case undefined:
+            return undefined;
+        default:
+            return host;
+    }
+}
+
+exports.should_train = function (txn) {
+    if (txn.notes.training_mode && txn.notes.training_mode === 'spam')
+        return ' spam';
+    return '';
+}
+
+exports.get_result = function (c, result) {
+    let plugin = this;
+
+    // Get result code
+    switch (result) {
+        case 'A':
+            // Accept, fall through
+        case 'G':
+            // Greylist, fall through
+        case 'R':
+            // Reject, fall through
+        case 'S':
+            // Accept for some recipients, fall through
+        case 'T':
+            // Temporary failure
             break;
         default:
-            host = connection.remote.host;
+            c.logerror(plugin, 'invalid result: ' + result);
+            break;
+    }
+    return result;
+}
+
+exports.get_disposition = function (c, disposition) {
+    let plugin = this;
+
+    switch (disposition) {
+        case 'A':    // Deliver the message
+        case 'G':    // Discard the message during greylist embargo
+        case 'R':    // Discard the message as spam
+            break;
+        default:
+            c.logerror(plugin, 'invalid disposition: ' + disposition);
             break;
     }
 
-    var rcpts = txn.rcpt_to.map(function (rcpt) { return rcpt.address(); });
-    var training = (txn.notes.training_mode && txn.notes.training_mode === 'spam')
-        ? true : false;
-    var response = '';
-    var client = net.createConnection({
-        path: '/var/dcc/dccifd'
-    }, function () {
-        // http://www.dcc-servers.net/dcc/dcc-tree/dccifd.html
-        connection.logdebug(plugin, 'connected to dcc');
-        var protocol_headers = [
-            'header' + ((training) ? ' spam' : ''),
-            connection.remote.ip + ((host) ? '\r' + host : ''),
-            connection.hello.host,
-            txn.mail_from.address(),
-            rcpts.join('\r'),
-        ].join('\n');
-        connection.logdebug(plugin, 'sending protocol headers: ' + protocol_headers);
-        this.write(protocol_headers + '\n\n', function () {
-            txn.message_stream.pipe(client);
-        });
-    });
-
-    client.on('error', function (err) {
-        connection.logerror(plugin, err.message);
-        return next();
-    });
-
-    client.on('data', function (chunk) {
-        response += chunk.toString('utf8');
-    });
-
-    client.on('end', function () {
-        var rl = response.split("\n");
-        if (rl.length < 2) {
-            connection.logwarn(plugin, 'invalid response: ' + response + 'length=' + rl.length);
-            return next();
-        }
-        connection.logdebug(plugin, 'got response: ' + response);
-        // Get result code
-        var result = rl.shift();
-        switch (result) {
-            case 'A':
-                // Accept, fall through
-            case 'G':
-                // Greylist, fall through
-            case 'R':
-                // Reject, fall through
-            case 'S':
-                // Accept for some recipients, fall through
-            case 'T':
-                // Temporary failure
-                break;
-            default:
-                connection.logerror(plugin, 'invalid result: ' + result);
-                break;
-        }
-        // Disposition
-        var disposition = rl.shift();
-        switch (disposition) {
-            case 'A':    // Deliver the message
-            case 'G':    // Discard the message during greylist embargo
-            case 'R':    // Discard the message as spam
-                break;
-            default:
-                connection.logerror(plugin, 'invalid disposition: ' + disposition);
-                break;
-        }
-        // Read headers
-        var headers = [];
-        for (var i=0; i<rl.length; i++) {
-            if (/^\s/.test(rl[i]) && headers.length) {
-                // Continuation
-                headers[headers.length-1] += rl[i];
-            }
-            else {
-                if (rl[i]) headers.push(rl[i]);
-            }
-        }
-        connection.logdebug(this, 'found ' + headers.length + ' headers');
-        for (var h=0; h<headers.length; h++) {
-            var header = headers[h].toString('utf8').trim();
-            var match;
-            if ((match = /^([^: ]+):\s*((?:.|[\r\n])+)/.exec(header))) {
-                txn.add_header(match[1], match[2]);
-            }
-            else {
-                connection.logerror(this, 'header did not match regexp: ' + header);
-            }
-        }
-        connection.loginfo(plugin, 'training=' + (training ? 'Y' : 'N') + ' result=' + result +
-                                 ' disposition=' + disposition + ' headers=' + headers.length);
-        return next();
-    });
+    return disposition;
 }
 
+exports.get_request_headers = function (conn, training) {
+    let plugin = this;
+    let txn = conn.transaction;
+    let host  = plugin.get_host(conn.remote.host);
+
+    let headers = [
+        'header' + training,
+        conn.remote.ip + ((host) ? '\r' + host : ''),
+        conn.hello.host,
+        txn.mail_from.address(),
+        txn.rcpt_to.map((rcpt) => { return rcpt.address(); }).join('\r'),
+    ].join('\n');
+
+    conn.logdebug(plugin, 'sending protocol headers: ' + headers);
+    return headers + '\n\n';
+}
+
+exports.get_response_headers = function (c, rl) {
+    // Read headers
+    let headers = [];
+    for (let i=0; i<rl.length; i++) {
+        if (/^\s/.test(rl[i]) && headers.length) {
+            // Continuation
+            headers[headers.length-1] += rl[i];
+        }
+        else {
+            if (rl[i]) headers.push(rl[i]);
+        }
+    }
+    c.logdebug(this, 'found ' + headers.length + ' headers');
+
+    for (let h=0; h<headers.length; h++) {
+        let header = headers[h].toString('utf8').trim();
+        let match;
+        if ((match = /^([^: ]+):\s*((?:.|[\r\n])+)/.exec(header))) {
+            c.transaction.add_header(match[1], match[2]);
+        }
+        else {
+            c.logerror(this, 'header did not match regexp: ' + header);
+        }
+    }
+
+    return headers;
+}
+
+exports.hook_data_post = function (next, connection) {
+    let plugin = this;
+
+    // Fix-up rDNS for DCC
+    let training = plugin.should_train(connection.transaction);
+    let response = '';
+
+    let client = net.createConnection(plugin.connCfg, () => {
+        connection.logdebug(plugin, 'connected to dcc');
+
+        this.write(plugin.get_request_headers(connection, training) , () => {
+            connection.transaction.message_stream.pipe(client);
+        });
+    })
+        .on('error', function (err) {
+            connection.logerror(plugin, err.message);
+            return next();
+        })
+        .on('data', function (chunk) {
+            response += chunk.toString('utf8');
+        })
+        .on('end', function () {
+            var rl = response.split("\n");
+            if (rl.length < 2) {
+                connection.logwarn(plugin, 'invalid response: ' + response + 'length=' + rl.length);
+                return next();
+            }
+            connection.logdebug(plugin, 'got response: ' + response);
+
+            let result      = plugin.get_result(connection, rl.shift());
+            let disposition = plugin.get_disposition(connection, rl.shift());
+            let headers     = plugin.get_response_headers(connection, rl);
+
+            connection.loginfo(plugin, 'training=' + (training ? 'Y' : 'N') +
+                   ` result=${result} disposition=${disposition} headers=${headers.length}`);
+
+            return next();
+        });
+}
