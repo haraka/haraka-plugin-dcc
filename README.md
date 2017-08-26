@@ -3,7 +3,6 @@
 [![Code Climate][clim-img]][clim-url]
 [![Greenkeeper badge][gk-img]][gk-url]
 [![NPM][npm-img]][npm-url]
-<!-- doesn't work in haraka plugins... yet. [![Code Coverage][cov-img]][cov-url]-->
 
 # haraka-plugin-dcc
 
@@ -13,20 +12,13 @@ See http://www.dcc-servers.net/dcc/ for details of how it works.
 This plugin implements the protocol used by the dccifd daemon to communicate
 with DCC.
 
-It requires that you install the DCC client and configure and start-up the
-dccifd daemon as per the documentation and expects the dccifd socket to be
-/var/dcc/dccifd.
+It requires the dccifd daemon running and expects the dccifd socket to be at
+/var/dcc/dccifd. To connect to a TCP host:port, edit dcc.ini.
 
-Currently it only reports results to the logs, it does not reject, greylist
-or do anything with the results of any kind.
+Currently it only reports results.
 
 You can report spam to DCC during reception by setting:
 `connection.transaction.notes.training_mode = 'spam'`
-
-## Enable Travis-CI testing
-
-- [ ] visit your [Travis-CI profile page](https://travis-ci.org/profile) and enable Continuous Integration testing on the repo
-- [ ] enable Code Climate. Click the _code climate_ badge and import your repo.
 
 
 ### Configuration
@@ -37,8 +29,6 @@ If the default configuration is not sufficient, copy the config file from the di
 cp node_modules/haraka-plugin-dcc/config/dcc.ini config/dcc.ini
 $EDITOR config/dcc.ini
 ```
-
-## USAGE
 
 
 <!-- leave these buried at the bottom of the document -->
