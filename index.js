@@ -8,7 +8,7 @@ exports.register = function () {
 }
 
 exports.load_dcc_ini = function () {
-    let plugin = this;
+    const plugin = this;
     plugin.cfg = plugin.config.get('dcc.ini', () => {
         plugin.load_dcc_ini();
     });
@@ -43,7 +43,7 @@ exports.human_result = function (code) {
 }
 
 exports.get_result = function (c, result) {
-    let plugin = this;
+    const plugin = this;
 
     // Get result code
     switch (result) {
@@ -74,7 +74,7 @@ exports.human_disposition = function (code) {
 }
 
 exports.get_disposition = function (c, disposition) {
-    let plugin = this;
+    const plugin = this;
 
     switch (disposition) {
         case 'A':    // Deliver the message
@@ -90,11 +90,11 @@ exports.get_disposition = function (c, disposition) {
 }
 
 exports.get_request_headers = function (conn, training) {
-    let plugin = this;
-    let txn = conn.transaction;
-    let host  = plugin.get_host(conn.remote.host);
+    const plugin = this;
+    const txn = conn.transaction;
+    const host  = plugin.get_host(conn.remote.host);
 
-    let headers = [
+    const headers = [
         'header' + training,
         conn.remote.ip + ((host) ? '\r' + host : ''),
         conn.hello.host,
@@ -108,7 +108,7 @@ exports.get_request_headers = function (conn, training) {
 
 exports.get_response_headers = function (c, rl) {
     // Read headers
-    let headers = [];
+    const headers = [];
     for (let i=0; i<rl.length; i++) {
         if (/^\s/.test(rl[i]) && headers.length) {
             // Continuation
@@ -121,7 +121,7 @@ exports.get_response_headers = function (c, rl) {
     c.logdebug(this, 'found ' + headers.length + ' headers');
 
     for (let h=0; h<headers.length; h++) {
-        let header = headers[h].toString('utf8').trim();
+        const header = headers[h].toString('utf8').trim();
         let match;
         if ((match = /^([^: ]+):\s*((?:.|[\r\n])+)/.exec(header))) {
             c.transaction.add_header(match[1], match[2]);
@@ -135,10 +135,10 @@ exports.get_response_headers = function (c, rl) {
 }
 
 exports.hook_data_post = function (next, connection) {
-    let plugin = this;
+    const plugin = this;
 
     // Fix-up rDNS for DCC
-    let training = plugin.should_train(connection.transaction);
+    const training = plugin.should_train(connection.transaction);
     let response = '';
     let client;
 
@@ -150,7 +150,7 @@ exports.hook_data_post = function (next, connection) {
         });
     }
 
-    let c = plugin.cfg.dccifd;
+    const c = plugin.cfg.dccifd;
     if (c.path) {
         client = net.createConnection(c.path, onConnect);
     }
@@ -167,16 +167,16 @@ exports.hook_data_post = function (next, connection) {
             response += chunk.toString('utf8');
         })
         .on('end', function () {
-            var rl = response.split("\n");
+            const rl = response.split("\n");
             if (rl.length < 2) {
                 connection.logwarn(plugin, 'invalid response: ' + response + 'length=' + rl.length);
                 return next();
             }
             connection.logdebug(plugin, 'got response: ' + response);
 
-            let result      = plugin.get_result(connection, rl.shift());
-            let disposition = plugin.get_disposition(connection, rl.shift());
-            let headers     = plugin.get_response_headers(connection, rl);
+            const result      = plugin.get_result(connection, rl.shift());
+            const disposition = plugin.get_disposition(connection, rl.shift());
+            const headers     = plugin.get_response_headers(connection, rl);
 
             connection.transaction.results.add(plugin, {
                 'training': (training ? true : false),
