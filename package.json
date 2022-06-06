@@ -1,12 +1,12 @@
 {
   "name": "haraka-plugin-dcc",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Haraka plugin that scans messages with DCC",
   "main": "index.js",
   "scripts": {
     "lint": "npx eslint *.js test",
     "lintfix": "npx eslint --fix *.js test",
-    "test": "npx _mocha"
+    "test": "npx mocha"
   },
   "repository": {
     "type": "git",
