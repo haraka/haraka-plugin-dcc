@@ -1,7 +1,5 @@
 [![Build Status][ci-img]][ci-url]
-[![Windows Build Status][ci-win-img]][ci-win-url]
 [![Code Climate][clim-img]][clim-url]
-[![Greenkeeper badge][gk-img]][gk-url]
 [![NPM][npm-img]][npm-url]
 
 # haraka-plugin-dcc
@@ -32,16 +30,10 @@ $EDITOR config/dcc.ini
 
 
 <!-- leave these buried at the bottom of the document -->
-[ci-img]: https://travis-ci.org/haraka/haraka-plugin-dcc.svg
-[ci-url]: https://travis-ci.org/haraka/haraka-plugin-dcc
-[ci-win-img]: https://ci.appveyor.com/api/projects/status/m0ema14m4e5vy3al?svg=true
-[ci-win-url]: https://ci.appveyor.com/project/haraka/haraka-m0ema14m4e5vy3al
-[cov-img]: https://codecov.io/github/haraka/haraka-plugin-dcc/coverage.svg
-[cov-url]: https://codecov.io/github/haraka/haraka-plugin-dcc
+[ci-img]: https://github.com/haraka/haraka-plugin-dcc/actions/workflows/ci.yml/badge.svg
+[ci-url]: https://github.com/haraka/haraka-plugin-dcc/actions/workflows/ci.yml
 [clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-dcc/badges/gpa.svg
 [clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-dcc
-[gk-img]: https://badges.greenkeeper.io/haraka/haraka-plugin-dcc.svg
-[gk-url]: https://greenkeeper.io/
 [npm-img]: https://nodei.co/npm/haraka-plugin-dcc.png
 [npm-url]: https://www.npmjs.com/package/haraka-plugin-dcc
 
