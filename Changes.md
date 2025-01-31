@@ -1,3 +1,7 @@
+# Changelog
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/).
+
 ### Unreleased
 
 
@@ -21,3 +25,5 @@
 - initial release
 
 [1.0.3]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/1.0.3
+[1.0.1]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/v1.0.1
+[1.0.2]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/v1.0.2
