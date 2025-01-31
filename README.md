@@ -18,7 +18,6 @@ Currently it only reports results.
 You can report spam to DCC during reception by setting:
 `connection.transaction.notes.training_mode = 'spam'`
 
-
 ### Configuration
 
 If the default configuration is not sufficient, copy the config file from the distribution into your haraka config dir and then modify it:
@@ -28,13 +27,11 @@ cp node_modules/haraka-plugin-dcc/config/dcc.ini config/dcc.ini
 $EDITOR config/dcc.ini
 ```
 
-
 <!-- leave these buried at the bottom of the document -->
+
 [ci-img]: https://github.com/haraka/haraka-plugin-dcc/actions/workflows/ci.yml/badge.svg
 [ci-url]: https://github.com/haraka/haraka-plugin-dcc/actions/workflows/ci.yml
 [clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-dcc/badges/gpa.svg
 [clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-dcc
 [npm-img]: https://nodei.co/npm/haraka-plugin-dcc.png
 [npm-url]: https://www.npmjs.com/package/haraka-plugin-dcc
-
-
