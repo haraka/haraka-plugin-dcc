@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### [1.0.3] - 2025-01-30
 
--
+- ci: update to shared workflows
+- style(prettier)
+- doc: mv Changes.md CHANGELOG.md
+- dep(eslint): upgrade to v9
+- doc(CONTRIBUTORS): added
 
 # 1.0.2 - 2022-06-06
 
