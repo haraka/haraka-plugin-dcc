@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "lint": "npx eslint *.js test",
-    "lintfix": "npx eslint --fix *.js test",
+    "lint:fix": "npx eslint --fix *.js test",
     "test": "npx mocha",
     "format": "npm run prettier:fix && npm run lint:fix",
     "prettier": "npx prettier . --check",

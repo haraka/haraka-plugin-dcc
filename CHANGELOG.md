@@ -4,15 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
-
 ### [1.0.3] - 2025-01-30
 
-- 
+-
 
 # 1.0.2 - 2022-06-06
 
 - ci: use shared GHA workflows
-
 
 # 1.0.1 - 2018-08-25
 
