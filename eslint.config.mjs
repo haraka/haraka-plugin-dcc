@@ -1,4 +1,3 @@
-import haraka from 'eslint-plugin-haraka'
 import globals from 'globals'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,22 +13,12 @@ const compat = new FlatCompat({
 })
 
 export default [
-  ...compat.extends('eslint:recommended', 'plugin:haraka/recommended'),
+  ...compat.extends('@haraka'),
   {
-    plugins: {
-      haraka,
-    },
-
     languageOptions: {
       globals: {
         ...globals.node,
         ...globals.mocha,
-        OK: true,
-        CONT: true,
-        DENY: true,
-        DENYSOFT: true,
-        DENYDISCONNECT: true,
-        DENYSOFTDISCONNECT: true,
       },
     },
   },
