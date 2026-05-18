@@ -31,7 +31,6 @@ describe('load_dcc_ini', () => {
       '/var/dcc/dccifd',
       this.plugin.cfg,
     )
-
   })
 })
 
@@ -44,6 +43,5 @@ describe('get_host', () => {
 
   it('returns a hostname', () => {
     assert.equal(this.plugin.get_host('host'), 'host')
-
   })
 })
