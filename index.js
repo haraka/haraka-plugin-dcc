@@ -106,10 +106,10 @@ exports.get_request_headers = function (conn, training) {
     'header' + training,
     conn.remote.ip + (host ? '\r' + host : ''),
     conn.hello.host,
-    txn.mail_from.address(),
+    txn.mail_from.address,
     txn.rcpt_to
       .map((rcpt) => {
-        return rcpt.address()
+        return rcpt.address
       })
       .join('\r'),
   ].join('\n')

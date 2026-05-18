@@ -1,7 +1,8 @@
 // node.js built-in modules
-const assert = require('assert')
+const assert = require('node:assert')
 
 // npm modules
+const { describe, it, beforeEach } = require('node:test')
 const fixtures = require('haraka-test-fixtures')
 
 beforeEach(() => {

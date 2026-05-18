@@ -4,6 +4,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.1.0] - 2026-05-17
+
+- changed: replaced address-rfc2821 with @haraka/email-address
+- changed: remove unneeded done callbacks (#15)
+
 ### [1.0.3] - 2025-01-30
 
 - ci: update to shared workflows
@@ -26,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - initial release
 
-[1.0.3]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/1.0.3
+[1.0.3]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/v1.0.3
 [1.0.1]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/v1.0.1
 [1.0.2]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/v1.0.2
+[1.1.0]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/v1.1.0
