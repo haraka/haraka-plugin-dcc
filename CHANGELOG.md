@@ -6,8 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### [1.1.0] - 2026-05-17
 
-- changed: replaced address-rfc2821 with @haraka/email-address
-- changed: remove unneeded done callbacks (#15)
+- change: replaced address-rfc2821 with @haraka/email-address
+- change: remove unneeded done callbacks (#15)
+- change: test runner is now node:test
 
 ### [1.0.3] - 2025-01-30
 
