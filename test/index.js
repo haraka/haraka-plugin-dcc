@@ -1,7 +1,8 @@
 // node.js built-in modules
-const assert = require('assert')
+const assert = require('node:assert')
 
 // npm modules
+const { describe, it, beforeEach } = require('node:test')
 const fixtures = require('haraka-test-fixtures')
 
 beforeEach(() => {
@@ -30,7 +31,6 @@ describe('load_dcc_ini', () => {
       '/var/dcc/dccifd',
       this.plugin.cfg,
     )
-
   })
 })
 
@@ -43,6 +43,5 @@ describe('get_host', () => {
 
   it('returns a hostname', () => {
     assert.equal(this.plugin.get_host('host'), 'host')
-
   })
 })
