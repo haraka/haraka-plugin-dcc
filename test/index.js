@@ -2,11 +2,11 @@
 const assert = require('node:assert')
 
 // npm modules
-const { describe, it, beforeEach } = require('node:test')
-const fixtures = require('haraka-test-fixtures')
+const { beforeEach, describe, it } = require('node:test')
+const { makePlugin } = require('haraka-test-fixtures')
 
 beforeEach(() => {
-  this.plugin = new fixtures.plugin('dcc')
+  this.plugin = makePlugin('dcc', { register: false })
 })
 
 describe('dcc', () => {
@@ -17,7 +17,7 @@ describe('dcc', () => {
 
 describe('load_dcc_ini', () => {
   beforeEach(() => {
-    this.plugin = new fixtures.plugin('dcc')
+    this.plugin = makePlugin('dcc', { register: false })
     this.plugin.load_dcc_ini()
   })
 

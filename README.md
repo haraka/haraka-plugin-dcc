@@ -1,8 +1,6 @@
-[![Build Status][ci-img]][ci-url]
-[![Code Climate][clim-img]][clim-url]
-[![NPM][npm-img]][npm-url]
-
 # haraka-plugin-dcc
+
+[![Test][ci-img]][ci-url] [![Cover][cov-img]][cov-url] [![Qlty][qlty-img]][qlty-url]
 
 The Distributed Checksum Clearinghouses or DCC is an anti-spam content filter.
 See http://www.dcc-servers.net/dcc/ for details of how it works.
@@ -31,7 +29,7 @@ $EDITOR config/dcc.ini
 
 [ci-img]: https://github.com/haraka/haraka-plugin-dcc/actions/workflows/ci.yml/badge.svg
 [ci-url]: https://github.com/haraka/haraka-plugin-dcc/actions/workflows/ci.yml
-[clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-dcc/badges/gpa.svg
-[clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-dcc
-[npm-img]: https://nodei.co/npm/haraka-plugin-dcc.png
-[npm-url]: https://www.npmjs.com/package/haraka-plugin-dcc
+[cov-img]: https://codecov.io/github/haraka/haraka-plugin-dcc/coverage.svg
+[cov-url]: https://codecov.io/github/haraka/haraka-plugin-dcc
+[qlty-img]: https://qlty.sh/gh/haraka/projects/haraka-plugin-dcc/maintainability.svg
+[qlty-url]: https://qlty.sh/gh/haraka/projects/haraka-plugin-dcc
