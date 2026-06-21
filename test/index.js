@@ -1,8 +1,9 @@
 // node.js built-in modules
 const assert = require('node:assert')
+const net = require('node:net')
 
 // npm modules
-const { beforeEach, describe, it } = require('node:test')
+const { afterEach, beforeEach, describe, it } = require('node:test')
 const { makePlugin, makeConnection } = require('haraka-test-fixtures')
 
 beforeEach(() => {
@@ -106,5 +107,61 @@ describe('handle_dcc', () => {
       ' spam',
     )
     assert.equal(this.connection.transaction.results.get('dcc').training, true)
+  })
+})
+
+describe('dcc_data_post', () => {
+  let server
+
+  const primeTxn = () =>
+    new Promise((done) => {
+      this.plugin = makePlugin('dcc')
+      this.connection = makeConnection({ withTxn: true })
+      const txn = this.connection.transaction
+      txn.mail_from = { address: 'm@example.com' }
+      txn.rcpt_to = [{ address: 'r@example.com' }]
+      txn.message_stream.add_line('Subject: hi\r\n')
+      txn.message_stream.add_line('\r\n')
+      txn.message_stream.add_line('body\r\n')
+      txn.message_stream.add_line_end(done)
+    })
+
+  const startDccifd = (reply) =>
+    new Promise((resolve) => {
+      server = net.createServer((s) => {
+        s.on('data', () => {})
+        s.on('end', () => s.end(reply))
+      })
+      server.listen(0, '127.0.0.1', () => resolve(server.address().port))
+    })
+
+  const run = () =>
+    new Promise((resolve) =>
+      this.plugin.dcc_data_post((...a) => resolve(a), this.connection),
+    )
+
+  afterEach((t, done) => {
+    const s = server
+    server = null
+    if (s && s.listening) return s.close(done)
+    done()
+  })
+
+  it('annotates the transaction from a dccifd response', async () => {
+    await primeTxn()
+    const port = await startDccifd('A\nA\n\nX-DCC-Test: yes\n')
+    this.plugin.cfg.dccifd = { host: '127.0.0.1', port }
+    const args = await run()
+    assert.deepEqual(args, [])
+    const r = this.connection.transaction.results.get('dcc')
+    assert.equal(r.result, 'Accept')
+    assert.equal(r.disposition, 'Accept')
+  })
+
+  it('continues (CONT) on connection error', async () => {
+    await primeTxn()
+    this.plugin.cfg.dccifd = { host: '127.0.0.1', port: 1 } // refused
+    const args = await run()
+    assert.deepEqual(args, [])
   })
 })

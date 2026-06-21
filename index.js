@@ -149,11 +149,23 @@ exports.get_response_headers = function (c, rl) {
 
 exports.dcc_data_post = function (next, connection) {
   const plugin = this
+  const txn = connection.transaction
 
   // Fix-up rDNS for DCC
-  const training = plugin.should_train(connection.transaction)
+  const training = plugin.should_train(txn)
   let response = ''
   let client
+
+  // Idempotent terminal handler: error and end can both fire, so guard next().
+  // unpipe() before destroy() — see haraka/message-stream#22.
+  let calledNext = false
+  const nextOnce = (code, msg) => {
+    if (txn?.message_stream) txn.message_stream.unpipe()
+    if (client && !client.destroyed) client.destroy()
+    if (calledNext) return
+    calledNext = true
+    return code ? next(code, msg) : next()
+  }
 
   function onConnect() {
     connection.logdebug(plugin, 'connected to dcc')
@@ -173,19 +185,20 @@ exports.dcc_data_post = function (next, connection) {
   client
     .on('error', function (err) {
       connection.logerror(plugin, err.message)
-      return next()
+      return nextOnce()
     })
     .on('data', function (chunk) {
       response += chunk.toString('utf8')
     })
     .on('end', function () {
+      if (!connection.transaction) return nextOnce() // client gone
       const parsed = plugin.parse_dcc(connection, response)
       if (!parsed) {
         connection.logwarn(plugin, `invalid response: ${response}`)
-        return next()
+        return nextOnce()
       }
       connection.logdebug(plugin, 'got response: ' + response)
-      return next(...plugin.handle_dcc(connection, parsed, training))
+      return nextOnce(...plugin.handle_dcc(connection, parsed, training))
     })
 }
 
