@@ -4,7 +4,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
-- test: refactored against test-fixtures 1.7.0
+### [1.1.1] - 2026-06-20
+
+- fix(dcc_data_post): gate on missing txn, 3x
+- fix(parse_dcc): gate on missing txn
+- fix(dcc_data_post): idempotent `next()` guard so error + end can't both fire it
+- refactor: resolve the dccifd connection target at config (re)load
+- config: comment out the default `dccifd path` so host/port can be enabled
+- refactor: rename hook_data_post to dcc_data_post
+- split into reusable `parse_dcc` + `handle_dcc` see haraka/Haraka#3604
+- test: cover `parse_dcc`, `handle_dcc`, and a `dcc_data_post` exchange
+- test: refactored against test-fixtures 1.7.0 (#17)
 
 ### [1.1.0] - 2026-05-17
 
@@ -38,3 +48,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.0.1]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/v1.0.1
 [1.0.2]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/v1.0.2
 [1.1.0]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/v1.1.0
+[1.1.1]: https://github.com/haraka/haraka-plugin-dcc/releases/tag/v1.1.1

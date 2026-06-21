@@ -1,17 +1,27 @@
 // dcc client
 // http://www.dcc-servers.net/dcc/dcc-tree/dccifd.html
 
-const net = require('net')
+const net = require('node:net')
 
 exports.register = function () {
   this.load_dcc_ini()
+  // explicit hook (not magic hook_data_post) so the plugin can be inherited;
+  // don't rename. guarded so inheritors don't re-register. haraka/Haraka#3604
+  if (this.name === 'dcc') this.register_hook('data_post', 'dcc_data_post')
 }
 
 exports.load_dcc_ini = function () {
-  const plugin = this
-  plugin.cfg = plugin.config.get('dcc.ini', () => {
-    plugin.load_dcc_ini()
+  this.cfg = this.config.get('dcc.ini', () => {
+    this.load_dcc_ini()
   })
+  this.set_connect_opts()
+}
+
+// Resolve the dccifd connection target once per (re)load, not per message: a
+// unix socket `path`, else `host`/`port`. haraka/Haraka#3604
+exports.set_connect_opts = function () {
+  const c = this.cfg.dccifd ?? {}
+  this.connect_opts = c.path ? { path: c.path } : { host: c.host, port: c.port }
 }
 
 exports.get_host = function (host) {
@@ -98,9 +108,8 @@ exports.get_disposition = function (c, disposition) {
 }
 
 exports.get_request_headers = function (conn, training) {
-  const plugin = this
   const txn = conn.transaction
-  const host = plugin.get_host(conn.remote.host)
+  const host = this.get_host(conn.remote.host)
 
   const headers = [
     'header' + training,
@@ -114,7 +123,7 @@ exports.get_request_headers = function (conn, training) {
       .join('\r'),
   ].join('\n')
 
-  conn.logdebug(plugin, 'sending protocol headers: ' + headers)
+  conn.logdebug(this, 'sending protocol headers: ' + headers)
   return headers + '\n\n'
 }
 
@@ -144,15 +153,32 @@ exports.get_response_headers = function (c, rl) {
   return headers
 }
 
-exports.hook_data_post = function (next, connection) {
+exports.dcc_data_post = function (next, connection) {
   const plugin = this
+  const txn = connection.transaction
+  if (!txn) return next()
 
   // Fix-up rDNS for DCC
-  const training = plugin.should_train(connection.transaction)
+  const training = plugin.should_train(txn)
   let response = ''
   let client
 
+  // Idempotent terminal handler: error and end can both fire, so guard next().
+  // unpipe() before destroy() — see haraka/message-stream#22.
+  let calledNext = false
+  const nextOnce = (code, msg) => {
+    if (txn?.message_stream) txn.message_stream.unpipe()
+    if (client && !client.destroyed) client.destroy()
+    if (calledNext) return
+    calledNext = true
+    return code ? next(code, msg) : next()
+  }
+
   function onConnect() {
+    // the transaction can vanish during the async connect; building headers
+    // without it throws here, which would crash the worker (not caught by the
+    // plugin runner). Bail to CONT instead.
+    if (!connection.transaction) return nextOnce()
     connection.logdebug(plugin, 'connected to dcc')
 
     this.write(plugin.get_request_headers(connection, training), () => {
@@ -160,50 +186,54 @@ exports.hook_data_post = function (next, connection) {
     })
   }
 
-  const c = plugin.cfg.dccifd
-  if (c.path) {
-    client = net.createConnection(c.path, onConnect)
-  } else {
-    client = net.createConnection(c.port, c.host, onConnect)
-  }
+  client = net.createConnection(plugin.connect_opts, onConnect)
 
   client
     .on('error', function (err) {
       connection.logerror(plugin, err.message)
-      return next()
+      nextOnce()
     })
     .on('data', function (chunk) {
       response += chunk.toString('utf8')
     })
     .on('end', function () {
-      const rl = response.split('\n')
-      if (rl.length < 2) {
-        connection.logwarn(
-          plugin,
-          'invalid response: ' + response + 'length=' + rl.length,
-        )
-        return next()
+      if (!connection.transaction) return nextOnce() // client gone
+      const parsed = plugin.parse_dcc(connection, response)
+      if (!parsed) {
+        connection.logwarn(plugin, `invalid response: ${response}`)
+        return nextOnce()
       }
       connection.logdebug(plugin, 'got response: ' + response)
-
-      const result = plugin.get_result(connection, rl.shift())
-      const disposition = plugin.get_disposition(connection, rl.shift())
-      const headers = plugin.get_response_headers(connection, rl)
-
-      connection.transaction.results.add(plugin, {
-        training: training ? true : false,
-        result: plugin.human_result(result),
-        disposition: plugin.human_disposition(disposition),
-        headers,
-      })
-
-      connection.loginfo(
-        plugin,
-        'training=' +
-          (training ? 'Y' : 'N') +
-          ` result=${result} disposition=${disposition} headers=${headers.length}`,
-      )
-
-      return next()
+      nextOnce(...plugin.handle_dcc(connection, parsed, training))
     })
+}
+
+// parse a raw dccifd response into { result, disposition, headers }
+// reusable by inheriting plugins, see haraka/Haraka#3604
+exports.parse_dcc = function (connection, raw) {
+  if (!connection.transaction) return null
+  const rl = String(raw).split('\n')
+  if (rl.length < 2) return null
+  const result = this.get_result(connection, rl.shift())
+  const disposition = this.get_disposition(connection, rl.shift())
+  const headers = this.get_response_headers(connection, rl)
+  return { result, disposition, headers }
+}
+
+// annotate the transaction with a parsed DCC result. I/O-free, reusable by
+// inheriting plugins, see haraka/Haraka#3604
+exports.handle_dcc = function (connection, parsed, training) {
+  if (!connection.transaction || !parsed) return []
+  connection.transaction.results.add(this, {
+    training: training ? true : false,
+    result: this.human_result(parsed.result),
+    disposition: this.human_disposition(parsed.disposition),
+    headers: parsed.headers,
+  })
+  connection.loginfo(
+    this,
+    `training=${training ? 'Y' : 'N'} result=${parsed.result} ` +
+      `disposition=${parsed.disposition} headers=${parsed.headers.length}`,
+  )
+  return []
 }
