@@ -198,14 +198,14 @@ exports.dcc_data_post = function (next, connection) {
         return nextOnce()
       }
       connection.logdebug(plugin, 'got response: ' + response)
-      return nextOnce(...plugin.handle_dcc(connection, parsed, training))
+      nextOnce(...plugin.handle_dcc(connection, parsed, training))
     })
 }
 
-// parse a raw dccifd response into { result, disposition, headers } (also adds
-// the DCC headers to the message). reusable by inheriting plugins. #3604
+// parse a raw dccifd response into { result, disposition, headers }
+// reusable by inheriting plugins, see haraka/Haraka#3604
 exports.parse_dcc = function (connection, raw) {
-  if (!connection.transaction) return null // get_response_headers adds headers
+  if (!connection.transaction) return null
   const rl = String(raw).split('\n')
   if (rl.length < 2) return null
   const result = this.get_result(connection, rl.shift())
@@ -215,7 +215,7 @@ exports.parse_dcc = function (connection, raw) {
 }
 
 // annotate the transaction with a parsed DCC result. I/O-free, reusable by
-// inheriting plugins; dcc has no reject so it returns [] (CONT). #3604
+// inheriting plugins, see haraka/Haraka#3604
 exports.handle_dcc = function (connection, parsed, training) {
   if (!connection.transaction || !parsed) return []
   connection.transaction.results.add(this, {
