@@ -6,16 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### [1.1.1] - 2026-06-20
 
-#### Changed
-
-- refactored against test-fixtures 1.7.0 (#17)
-
-
-- test: refactored against test-fixtures 1.7.0
-- refactor: rename `hook_data_post` to `dcc_data_post`, registered explicitly,
-  and split into reusable `parse_dcc` + `handle_dcc` so another plugin can reuse
-  DCC's results handling via `inherits()`. No behavior change for direct scans.
-  (#3604)
+- refactor: rename hook_data_post to dcc_data_post
+- split into reusable `parse_dcc` + `handle_dcc` see haraka/Haraka#3604
+- test: refactored against test-fixtures 1.7.0 (#17)
 
 ### [1.1.0] - 2026-05-17
 

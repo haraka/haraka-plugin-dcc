@@ -5,6 +5,9 @@ const net = require('net')
 
 exports.register = function () {
   this.load_dcc_ini()
+  // explicit hook (not magic hook_data_post) so the plugin can be inherited;
+  // don't rename. guarded so inheritors don't re-register. haraka/Haraka#3604
+  if (this.name === 'dcc') this.register_hook('data_post', 'dcc_data_post')
 }
 
 exports.load_dcc_ini = function () {
@@ -144,7 +147,7 @@ exports.get_response_headers = function (c, rl) {
   return headers
 }
 
-exports.hook_data_post = function (next, connection) {
+exports.dcc_data_post = function (next, connection) {
   const plugin = this
 
   // Fix-up rDNS for DCC
@@ -176,34 +179,41 @@ exports.hook_data_post = function (next, connection) {
       response += chunk.toString('utf8')
     })
     .on('end', function () {
-      const rl = response.split('\n')
-      if (rl.length < 2) {
-        connection.logwarn(
-          plugin,
-          'invalid response: ' + response + 'length=' + rl.length,
-        )
+      const parsed = plugin.parse_dcc(connection, response)
+      if (!parsed) {
+        connection.logwarn(plugin, `invalid response: ${response}`)
         return next()
       }
       connection.logdebug(plugin, 'got response: ' + response)
-
-      const result = plugin.get_result(connection, rl.shift())
-      const disposition = plugin.get_disposition(connection, rl.shift())
-      const headers = plugin.get_response_headers(connection, rl)
-
-      connection.transaction.results.add(plugin, {
-        training: training ? true : false,
-        result: plugin.human_result(result),
-        disposition: plugin.human_disposition(disposition),
-        headers,
-      })
-
-      connection.loginfo(
-        plugin,
-        'training=' +
-          (training ? 'Y' : 'N') +
-          ` result=${result} disposition=${disposition} headers=${headers.length}`,
-      )
-
-      return next()
+      return next(...plugin.handle_dcc(connection, parsed, training))
     })
+}
+
+// parse a raw dccifd response into { result, disposition, headers } (also adds
+// the DCC headers to the message). reusable by inheriting plugins. #3604
+exports.parse_dcc = function (connection, raw) {
+  const rl = String(raw).split('\n')
+  if (rl.length < 2) return null
+  const result = this.get_result(connection, rl.shift())
+  const disposition = this.get_disposition(connection, rl.shift())
+  const headers = this.get_response_headers(connection, rl)
+  return { result, disposition, headers }
+}
+
+// annotate the transaction with a parsed DCC result. I/O-free, reusable by
+// inheriting plugins; dcc has no reject so it returns [] (CONT). #3604
+exports.handle_dcc = function (connection, parsed, training) {
+  if (!connection.transaction || !parsed) return []
+  connection.transaction.results.add(this, {
+    training: training ? true : false,
+    result: this.human_result(parsed.result),
+    disposition: this.human_disposition(parsed.disposition),
+    headers: parsed.headers,
+  })
+  connection.loginfo(
+    this,
+    `training=${training ? 'Y' : 'N'} result=${parsed.result} ` +
+      `disposition=${parsed.disposition} headers=${parsed.headers.length}`,
+  )
+  return []
 }

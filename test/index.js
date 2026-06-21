@@ -3,7 +3,7 @@ const assert = require('node:assert')
 
 // npm modules
 const { beforeEach, describe, it } = require('node:test')
-const { makePlugin } = require('haraka-test-fixtures')
+const { makePlugin, makeConnection } = require('haraka-test-fixtures')
 
 beforeEach(() => {
   this.plugin = makePlugin('dcc', { register: false })
@@ -43,5 +43,68 @@ describe('get_host', () => {
 
   it('returns a hostname', () => {
     assert.equal(this.plugin.get_host('host'), 'host')
+  })
+})
+
+describe('register', () => {
+  it('registers an explicit data_post hook', () => {
+    this.plugin = makePlugin('dcc', { register: false })
+    this.plugin.register()
+    assert.ok(this.plugin.hooks.data_post.includes('dcc_data_post'))
+  })
+})
+
+describe('parse_dcc', () => {
+  beforeEach(() => {
+    this.plugin = makePlugin('dcc', { register: false })
+    this.connection = makeConnection({ withTxn: true })
+  })
+
+  it('parses result, disposition, and headers', () => {
+    const parsed = this.plugin.parse_dcc(
+      this.connection,
+      'A\nA\n\nX-DCC-Foo: bar\n',
+    )
+    assert.equal(parsed.result, 'A')
+    assert.equal(parsed.disposition, 'A')
+    assert.deepEqual(parsed.headers, ['X-DCC-Foo: bar'])
+  })
+
+  it('adds DCC headers to the transaction', () => {
+    this.plugin.parse_dcc(this.connection, 'A\nA\n\nX-DCC-Foo: bar\n')
+    assert.match(this.connection.transaction.header.get('X-DCC-Foo'), /bar/)
+  })
+
+  it('returns null for a too-short response', () => {
+    assert.equal(this.plugin.parse_dcc(this.connection, 'A'), null)
+  })
+})
+
+describe('handle_dcc', () => {
+  beforeEach(() => {
+    this.plugin = makePlugin('dcc', { register: false })
+    this.connection = makeConnection({ withTxn: true })
+  })
+
+  it('annotates the transaction and returns CONT (no reject)', () => {
+    const args = this.plugin.handle_dcc(
+      this.connection,
+      { result: 'R', disposition: 'R', headers: ['X-DCC-X: y'] },
+      '',
+    )
+    assert.deepEqual(args, [])
+    const r = this.connection.transaction.results.get('dcc')
+    assert.equal(r.result, 'Reject')
+    assert.equal(r.disposition, 'Reject')
+    assert.equal(r.training, false)
+  })
+
+  it('records training mode', () => {
+    this.plugin.handle_dcc(
+      this.connection,
+      { result: 'A', disposition: 'A', headers: [] },
+      ' spam',
+    )
+    assert.equal(this.connection.transaction.results.get('dcc').training, true)
   })
 })
