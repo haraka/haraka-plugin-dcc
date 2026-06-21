@@ -4,7 +4,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
-
 ### [1.1.1] - 2026-06-20
 
 - fix(dcc_data_post): gate on missing txn, 3x
