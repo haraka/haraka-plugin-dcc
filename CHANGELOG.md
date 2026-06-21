@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - refactor: rename hook_data_post to dcc_data_post
 - split into reusable `parse_dcc` + `handle_dcc` see haraka/Haraka#3604
+- test: cover `parse_dcc`, `handle_dcc`, and a `dcc_data_post` exchange
 - test: refactored against test-fixtures 1.7.0 (#17)
 
 ### [1.1.0] - 2026-05-17

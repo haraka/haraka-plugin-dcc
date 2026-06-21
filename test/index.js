@@ -79,6 +79,10 @@ describe('parse_dcc', () => {
   it('returns null for a too-short response', () => {
     assert.equal(this.plugin.parse_dcc(this.connection, 'A'), null)
   })
+
+  it('returns null when there is no transaction', () => {
+    assert.equal(this.plugin.parse_dcc(makeConnection(), 'A\nA\n'), null)
+  })
 })
 
 describe('handle_dcc', () => {

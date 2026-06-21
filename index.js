@@ -205,6 +205,7 @@ exports.dcc_data_post = function (next, connection) {
 // parse a raw dccifd response into { result, disposition, headers } (also adds
 // the DCC headers to the message). reusable by inheriting plugins. #3604
 exports.parse_dcc = function (connection, raw) {
+  if (!connection.transaction) return null // get_response_headers adds headers
   const rl = String(raw).split('\n')
   if (rl.length < 2) return null
   const result = this.get_result(connection, rl.shift())
