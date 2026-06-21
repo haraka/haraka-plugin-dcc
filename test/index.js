@@ -26,12 +26,31 @@ describe('load_dcc_ini', () => {
     assert.ok(this.plugin.cfg.main)
   })
 
-  it('detects set path', () => {
-    assert.equal(
-      this.plugin.cfg.dccifd.path,
-      '/var/dcc/dccifd',
-      this.plugin.cfg,
-    )
+  it('ships with no connection target configured', () => {
+    // a path default would mask host/port (the path branch always wins)
+    assert.equal(this.plugin.cfg.dccifd.path, undefined)
+  })
+})
+
+describe('set_connect_opts', () => {
+  beforeEach(() => {
+    this.plugin = makePlugin('dcc', { register: false })
+    this.plugin.cfg = { dccifd: {} }
+  })
+
+  it('resolves a unix socket path', () => {
+    this.plugin.cfg.dccifd = { path: '/var/dcc/dccifd' }
+    this.plugin.set_connect_opts()
+    assert.deepEqual(this.plugin.connect_opts, { path: '/var/dcc/dccifd' })
+  })
+
+  it('resolves host/port when no path is set', () => {
+    this.plugin.cfg.dccifd = { host: '127.0.0.1', port: 1025 }
+    this.plugin.set_connect_opts()
+    assert.deepEqual(this.plugin.connect_opts, {
+      host: '127.0.0.1',
+      port: 1025,
+    })
   })
 })
 
@@ -154,7 +173,7 @@ describe('dcc_data_post', () => {
   it('annotates the transaction from a dccifd response', async () => {
     await primeTxn()
     const port = await startDccifd('A\nA\n\nX-DCC-Test: yes\n')
-    this.plugin.cfg.dccifd = { host: '127.0.0.1', port }
+    this.plugin.connect_opts = { host: '127.0.0.1', port }
     const args = await run()
     assert.deepEqual(args, [])
     const r = this.connection.transaction.results.get('dcc')
@@ -164,8 +183,17 @@ describe('dcc_data_post', () => {
 
   it('continues (CONT) on connection error', async () => {
     await primeTxn()
-    this.plugin.cfg.dccifd = { host: '127.0.0.1', port: 1 } // refused
+    this.plugin.connect_opts = { host: '127.0.0.1', port: 1 } // refused
     const args = await run()
+    assert.deepEqual(args, [])
+  })
+
+  it('CONT immediately when there is no transaction', async () => {
+    this.plugin = makePlugin('dcc')
+    const connection = makeConnection() // no transaction
+    const args = await new Promise((resolve) =>
+      this.plugin.dcc_data_post((...a) => resolve(a), connection),
+    )
     assert.deepEqual(args, [])
   })
 })

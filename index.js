@@ -1,7 +1,7 @@
 // dcc client
 // http://www.dcc-servers.net/dcc/dcc-tree/dccifd.html
 
-const net = require('net')
+const net = require('node:net')
 
 exports.register = function () {
   this.load_dcc_ini()
@@ -11,10 +11,17 @@ exports.register = function () {
 }
 
 exports.load_dcc_ini = function () {
-  const plugin = this
-  plugin.cfg = plugin.config.get('dcc.ini', () => {
-    plugin.load_dcc_ini()
+  this.cfg = this.config.get('dcc.ini', () => {
+    this.load_dcc_ini()
   })
+  this.set_connect_opts()
+}
+
+// Resolve the dccifd connection target once per (re)load, not per message: a
+// unix socket `path`, else `host`/`port`. haraka/Haraka#3604
+exports.set_connect_opts = function () {
+  const c = this.cfg.dccifd ?? {}
+  this.connect_opts = c.path ? { path: c.path } : { host: c.host, port: c.port }
 }
 
 exports.get_host = function (host) {
@@ -101,9 +108,8 @@ exports.get_disposition = function (c, disposition) {
 }
 
 exports.get_request_headers = function (conn, training) {
-  const plugin = this
   const txn = conn.transaction
-  const host = plugin.get_host(conn.remote.host)
+  const host = this.get_host(conn.remote.host)
 
   const headers = [
     'header' + training,
@@ -117,7 +123,7 @@ exports.get_request_headers = function (conn, training) {
       .join('\r'),
   ].join('\n')
 
-  conn.logdebug(plugin, 'sending protocol headers: ' + headers)
+  conn.logdebug(this, 'sending protocol headers: ' + headers)
   return headers + '\n\n'
 }
 
@@ -150,6 +156,7 @@ exports.get_response_headers = function (c, rl) {
 exports.dcc_data_post = function (next, connection) {
   const plugin = this
   const txn = connection.transaction
+  if (!txn) return next()
 
   // Fix-up rDNS for DCC
   const training = plugin.should_train(txn)
@@ -168,6 +175,10 @@ exports.dcc_data_post = function (next, connection) {
   }
 
   function onConnect() {
+    // the transaction can vanish during the async connect; building headers
+    // without it throws here, which would crash the worker (not caught by the
+    // plugin runner). Bail to CONT instead.
+    if (!connection.transaction) return nextOnce()
     connection.logdebug(plugin, 'connected to dcc')
 
     this.write(plugin.get_request_headers(connection, training), () => {
@@ -175,17 +186,12 @@ exports.dcc_data_post = function (next, connection) {
     })
   }
 
-  const c = plugin.cfg.dccifd
-  if (c.path) {
-    client = net.createConnection(c.path, onConnect)
-  } else {
-    client = net.createConnection(c.port, c.host, onConnect)
-  }
+  client = net.createConnection(plugin.connect_opts, onConnect)
 
   client
     .on('error', function (err) {
       connection.logerror(plugin, err.message)
-      return nextOnce()
+      nextOnce()
     })
     .on('data', function (chunk) {
       response += chunk.toString('utf8')
